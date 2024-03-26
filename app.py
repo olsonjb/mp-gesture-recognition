@@ -97,6 +97,7 @@ def main():
 
     #  ########################################################################
     mode = 0
+    offset = 0
 
     while True:
         fps = cvFpsCalc.get()
@@ -105,7 +106,7 @@ def main():
         key = cv.waitKey(10)
         if key == 27:  # ESC
             break
-        number, mode = select_mode(key, mode)
+        number, mode, offset = select_mode(key, mode, offset)
 
         # Camera capture #####################################################
         ret, image = cap.read()
@@ -181,17 +182,20 @@ def main():
     cv.destroyAllWindows()
 
 
-def select_mode(key, mode):
+def select_mode(key, mode, offset=0):
     number = -1
     if 48 <= key <= 57:  # 0 ~ 9
-        number = key - 48
+        number = offset + key - 48
     if key == 110:  # n
         mode = 0
+        offset = 0
     if key == 107:  # k
         mode = 1
     if key == 104:  # h
         mode = 2
-    return number, mode
+    if key == 105 and mode > 0:  # i
+        offset += 10 # Pressing i will increment the offset by 10, allowing you to log on numbers 10-19, 20-29, etc.
+    return number, mode, offset
 
 
 def calc_bounding_rect(image, landmarks):
@@ -281,12 +285,12 @@ def pre_process_point_history(image, point_history):
 def logging_csv(number, mode, landmark_list, point_history_list):
     if mode == 0:
         pass
-    if mode == 1 and (0 <= number <= 9):
+    if mode == 1 and 0 <= number:
         csv_path = 'model/keypoint_classifier/keypoint.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
-    if mode == 2 and (0 <= number <= 9):
+    if mode == 2 and 0 <= number:
         csv_path = 'model/point_history_classifier/point_history.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
@@ -532,7 +536,7 @@ def draw_info(image, fps, mode, number):
         cv.putText(image, "MODE:" + mode_string[mode - 1], (10, 90),
                    cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1,
                    cv.LINE_AA)
-        if 0 <= number <= 9:
+        if 0 <= number:
             cv.putText(image, "NUM:" + str(number), (10, 110),
                        cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1,
                        cv.LINE_AA)
