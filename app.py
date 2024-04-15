@@ -11,6 +11,7 @@ import cv2 as cv
 import numpy as np
 import mediapipe as mp
 import mediapipe.python.solutions.hands as mp_hands
+import pyautogui as pag
 
 from utils import CvFpsCalc
 from model import KeyPointClassifier
@@ -95,8 +96,13 @@ def main():
     # Finger gesture history ################################################
     finger_gesture_history = deque(maxlen=history_length)
 
+    # Hand sign history #####################################################
+    previous_hand_sign = -1
+
     #  ########################################################################
+    # Mode for data recording
     mode = 0
+    # Offset for logging index to allow for using indices >9.
     offset = 0
 
     while True:
@@ -169,6 +175,12 @@ def main():
                     keypoint_classifier_labels[hand_sign_id],
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
+
+                if hand_sign_id != previous_hand_sign:
+                    previous_hand_sign = hand_sign_id
+                    # Keyboard/Mouse interaction from gesture
+                    if hand_sign_id == 3:
+                        pag.rightClick()
         else:
             point_history.append([0, 0])
 
