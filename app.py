@@ -34,6 +34,8 @@ def get_args():
                         help='min_tracking_confidence',
                         type=int,
                         default=0.5)
+    
+    parser.add_argument("--hide_img", action='store_true', help='Hide display window for performance')
 
     args = parser.parse_args()
 
@@ -51,6 +53,8 @@ def main():
     use_static_image_mode = args.use_static_image_mode
     min_detection_confidence = args.min_detection_confidence
     min_tracking_confidence = args.min_tracking_confidence
+
+    hide_img = args.hide_img
 
     use_brect = True
 
@@ -98,6 +102,7 @@ def main():
 
     # Hand sign history #####################################################
     previous_hand_sign = -1
+    continuous_sign_count = 0
 
     #  ########################################################################
     # Mode for data recording
@@ -176,15 +181,21 @@ def main():
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
 
-                if mode == 0:
-                    # Once per hand sign
-                    if hand_sign_id != previous_hand_sign:
-                        # Update history
+                if mode == 3:
+                    # Update history
+                    if hand_sign_id == previous_hand_sign:
+                        continuous_sign_count += 1
+                    else:
                         previous_hand_sign = hand_sign_id
+                        continuous_sign_count = 0
+
+                    # Require holding the sign for a moment for the interaction to be recognized. Do not repeat.
+                    if continuous_sign_count == 3:
                         # Keyboard/Mouse interaction from gesture
                         single_interact(hand_sign_id)
+
                     # Repeat while hand sign is shown
-                    constant_interact(hand_sign_id)
+                    constant_interact(hand_sign_id, continuous_sign_count)
         else:
             point_history.append([0, 0])
 
@@ -192,7 +203,8 @@ def main():
         debug_image = draw_info(debug_image, fps, mode, number)
 
         # Screen reflection #############################################################
-        cv.imshow('Hand Gesture Recognition', debug_image)
+        if not hide_img:
+            cv.imshow('Hand Gesture Recognition', debug_image)
 
     cap.release()
     cv.destroyAllWindows()
@@ -203,17 +215,18 @@ def single_interact(hand_sign_id):
     elif hand_sign_id == 4:
         pag.rightClick()
 
-def constant_interact(hand_sign_id):
+def constant_interact(hand_sign_id, sign_count):
     duration = 0.005
-    rate = 20
+    rate = 5 * sign_count
+    tween = pag.easeInOutQuad
     if hand_sign_id == 2:
-        pag.moveRel(0, -rate, duration)
+        pag.moveRel(0, -rate, duration, tween)
     elif hand_sign_id == 5:
-        pag.moveRel(0, rate, duration)
+        pag.moveRel(0, rate, duration, tween)
     elif hand_sign_id == 6:
-        pag.moveRel(-rate, 0, duration)
+        pag.moveRel(-rate, 0, duration, tween)
     elif hand_sign_id == 7:
-        pag.moveRel(rate, 0, duration)
+        pag.moveRel(rate, 0, duration, tween)
 
 
 def select_mode(key, mode, offset=0):
@@ -227,6 +240,8 @@ def select_mode(key, mode, offset=0):
         mode = 1
     if key == 104:  # h - record mode for point history
         mode = 2
+    if key == 109:  # m - gestures control mouse/keyboard inputs
+        mode = 3
     if key == 105 and mode > 0:  # i
         offset += 10 # Pressing i will increment the offset by 10, allowing you to log on numbers 10-19, 20-29, etc.
     return number, mode, offset
@@ -259,7 +274,7 @@ def calc_landmark_list(image, landmarks):
     for _, landmark in enumerate(landmarks.landmark):
         landmark_x = min(int(landmark.x * image_width), image_width - 1)
         landmark_y = min(int(landmark.y * image_height), image_height - 1)
-        # landmark_z = landmark.z
+        # Z coordinate landmark_z = landmark.z
 
         landmark_point.append([landmark_x, landmark_y])
 
