@@ -87,7 +87,7 @@ def main():
         ]
 
     # FPS Measurement ########################################################
-    cvFpsCalc = CvFpsCalc(buffer_len=10)
+    cv_fps_calc = CvFpsCalc(buffer_len=10)
 
     # Coordinate history #################################################################
     history_length = 16
@@ -106,7 +106,7 @@ def main():
     offset = 0
 
     while True:
-        fps = cvFpsCalc.get()
+        fps = cv_fps_calc.get()
 
         # Process Key (ESC: end) #################################################
         key = cv.waitKey(10)
@@ -176,11 +176,15 @@ def main():
                     point_history_classifier_labels[most_common_fg_id[0][0]],
                 )
 
-                if hand_sign_id != previous_hand_sign:
-                    previous_hand_sign = hand_sign_id
-                    # Keyboard/Mouse interaction from gesture
-                    if hand_sign_id == 3:
-                        pag.rightClick()
+                if mode == 0:
+                    # Once per hand sign
+                    if hand_sign_id != previous_hand_sign:
+                        # Update history
+                        previous_hand_sign = hand_sign_id
+                        # Keyboard/Mouse interaction from gesture
+                        single_interact(hand_sign_id)
+                    # Repeat while hand sign is shown
+                    constant_interact(hand_sign_id)
         else:
             point_history.append([0, 0])
 
@@ -193,6 +197,24 @@ def main():
     cap.release()
     cv.destroyAllWindows()
 
+def single_interact(hand_sign_id):
+    if hand_sign_id == 3:
+        pag.click()
+    elif hand_sign_id == 4:
+        pag.rightClick()
+
+def constant_interact(hand_sign_id):
+    duration = 0.005
+    rate = 20
+    if hand_sign_id == 2:
+        pag.moveRel(0, -rate, duration)
+    elif hand_sign_id == 5:
+        pag.moveRel(0, rate, duration)
+    elif hand_sign_id == 6:
+        pag.moveRel(-rate, 0, duration)
+    elif hand_sign_id == 7:
+        pag.moveRel(rate, 0, duration)
+
 
 def select_mode(key, mode, offset=0):
     number = -1
@@ -201,9 +223,9 @@ def select_mode(key, mode, offset=0):
     if key == 110:  # n
         mode = 0
         offset = 0
-    if key == 107:  # k
+    if key == 107:  # k - record mode for key points
         mode = 1
-    if key == 104:  # h
+    if key == 104:  # h - record mode for point history
         mode = 2
     if key == 105 and mode > 0:  # i
         offset += 10 # Pressing i will increment the offset by 10, allowing you to log on numbers 10-19, 20-29, etc.
@@ -295,19 +317,19 @@ def pre_process_point_history(image, point_history):
 
 
 def logging_csv(number, mode, landmark_list, point_history_list):
-    if mode == 0:
-        pass
+    # mode 0 does no logging
+    # mode 1 logs hand sign key points
     if mode == 1 and 0 <= number:
         csv_path = 'model/keypoint_classifier/keypoint.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *landmark_list])
+    # mode 2 logs point history
     if mode == 2 and 0 <= number:
         csv_path = 'model/point_history_classifier/point_history.csv'
         with open(csv_path, 'a', newline="") as f:
             writer = csv.writer(f)
             writer.writerow([number, *point_history_list])
-    return
 
 
 def draw_landmarks(image, landmark_point):
