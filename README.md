@@ -146,11 +146,14 @@ The model using "LSTM" is as follows. <br>Please change "use_lstm = False" to "T
 # Reference
 * [MediaPipe](https://mediapipe.dev/)
 
-# Author
+# Sign Recognition Model Author
 Kazuhito Takahashi(https://twitter.com/KzhtTkhs)
 
 # Translation and other improvements
 Nikita Kiselov(https://github.com/kinivi)
+
+# Model training and interactions
+Jacob Olson(https://github.com/olsonjb)
  
 # License 
 hand-gesture-recognition-using-mediapipe is under [Apache v2 license](LICENSE).
